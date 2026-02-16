@@ -1,0 +1,19 @@
+# Binary files
+server
+client
+
+# Object files
+*.o
+
+# Compilation artifacts
+*.out
+*.dSYM/
+
+# IDE specific
+.vscode/
+.idea/
+.DS_Store
+
+# Test scripts
+__pycache__/
+*.pyc
