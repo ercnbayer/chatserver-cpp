@@ -10,19 +10,11 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <fcntl.h>
-#include "user.hpp"
+#include "client.hpp"
 
 #define MAX_EVENTS 64
 #define PORT 8080
 
-// Protocol states
-enum  ClientState { SET_NAME, MENU, CHATTING };
-
-struct ClientContext {
-     std::unique_ptr<User> user;
-    int room_owner_id; // Room is identified by the owner's socket FD
-    ClientState state;
-};
 
 class Server {
 private:
@@ -30,7 +22,7 @@ private:
     int epoll_fd;
     struct epoll_event ev, events[MAX_EVENTS];
     
-    // Explicit map type without 'auto'
+
     std::map<int, ClientContext> clients;
 
     // Helper functions
