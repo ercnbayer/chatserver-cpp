@@ -11,5 +11,5 @@ class Room{
     std::string GetRoomId();
     std::vector<User> Users;
     Room(int fd);
-    ~Room();
+    ~Room()=default;
 };

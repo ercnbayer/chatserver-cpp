@@ -1,7 +1,7 @@
 # Compiler and Flags
 CXX = g++
 CXXFLAGS = -Wall -Wextra -std=c++17 -g
-TARGET = chat_server
+TARGET = chat_server.o
 
 # Object Files (The Pool)
 # We MUST include room.o if you have room.cpp
