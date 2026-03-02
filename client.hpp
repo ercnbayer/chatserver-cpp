@@ -11,3 +11,9 @@ struct ClientContext {
     ClientState state;
     std::string message;
 };
+class Server;
+bool process_client(
+    Server* pServer,
+    ClientContext* ctx,
+    int fd,
+    std::string_view raw_msg);

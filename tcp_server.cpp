@@ -6,6 +6,8 @@
 #include <unistd.h>
 #include <utility>
 #include "validator.hpp"
+#include "client.hpp"
+#include "room.hpp"
 
 Server::Server() {
   server_fd = socket(AF_INET, SOCK_STREAM, 0);
@@ -32,6 +34,28 @@ Server::Server() {
   std::cout << "[LOG] Server started on port " << PORT << std::endl;
 }
 
+void Server::send_response(int fd, std::string_view message) {
+    size_t total_sent = 0;
+    size_t message_len = message.length();
+    const char* raw_ptr = message.data();
+
+    while (total_sent < message_len) {
+        ssize_t sent = send(fd, raw_ptr + total_sent, message_len - total_sent, MSG_NOSIGNAL);
+
+        if (sent <= 0) {
+            if (sent < 0 && (errno == EAGAIN || errno == EWOULDBLOCK)) {
+                // In a real production-grade async server, you'd add this FD 
+                // to an 'outgoing buffer' and wait for EPOLLOUT.
+                // For now, we'll do a brief busy-wait or just break.
+                continue; 
+            }
+            // Broken pipe or fatal error
+            perror("Send failed");
+            return;
+        }
+        total_sent += sent;
+    }
+}   
 Server::~Server() {
   close(server_fd);
   close(epoll_fd);
@@ -55,23 +79,11 @@ bool Server::room_exists(int owner_id) {
   return false;
 }
 
-std::string Server::get_room_list() {
-  std::map < int, int > room_map; // RoomID -> Occupant Count
-  std::map < int, ClientContext > ::iterator it;
-  for (it = clients.begin(); it != clients.end(); ++it) {
-    if (it -> second.room_owner_id != -1) {
-      room_map[it -> second.room_owner_id]++;
-    }
-  }
+void Server::send_room_list(int fd) {
 
-  if (room_map.empty()) return "No active rooms.\n";
-
-  std::string list = "Active Rooms (by Owner ID):\n";
-  std::map < int, int > ::iterator rit;
-  for (rit = room_map.begin(); rit != room_map.end(); ++rit) {
-    list += "- Room ID: " + std::to_string(rit -> first) + " (" + std::to_string(rit -> second) + " users)\n";
-  }
-  return list;
+for (auto& room : roomList) {
+send_response(fd, room.name+'\t'+room.GetRoomId()+"\r\n");
+}
 }
 
 void Server::broadcast_to_room(int sender_fd,
@@ -86,9 +98,13 @@ void Server::broadcast_to_room(int sender_fd,
   }
 }
 
+void Server::addToRoomList(Room room){
+  roomList.push_back(room);
+}
+
 void Server::handle_client(int fd) {
   char buffer[1024];
-  auto it = clients.find(fd);
+  auto it = clients.find(fd);//returns std::pair
   ClientContext * ctx = nullptr;
 
   if (it != clients.end()) {
@@ -133,7 +149,7 @@ void Server::handle_client(int fd) {
       ChatProtocol::ValidationError err = ChatProtocol::Validator::validate_raw(raw_msg);
 
       if (err == ChatProtocol::ValidationError::NONE) {
-        //process_client(ctx, fd, raw_msg);
+        process_client(this,ctx, fd, raw_msg);
       } else {
         // Handle error...
       }
@@ -148,6 +164,9 @@ void Server::handle_client(int fd) {
 
   }
 }
+
+
+
 void Server::run() {
     while (true) {
         int nfds = epoll_wait(epoll_fd, events, MAX_EVENTS, -1);
@@ -175,5 +194,7 @@ void Server::run() {
                 handle_client(events[n].data.fd);
             }
         }
+
+
     }
 }

@@ -81,6 +81,21 @@ namespace ChatProtocol {
                 default:                             return "Unknown protocol error";
             }
         }
+        /**
+ * Counts the actual number of UTF-8 characters (codepoints),
+ * not just the raw bytes.
+ */
+static size_t utf8_length(std::string_view str) {
+    size_t count = 0;
+    for (unsigned char c : str) {
+        // In UTF-8, continuation bytes always start with binary '10' (0x80 to 0xBF)
+        // We only count the starting bytes of each character.
+        if ((c & 0xC0) != 0x80) {
+            count++;
+        }
+    }
+    return count;
+}
     };
 }
 

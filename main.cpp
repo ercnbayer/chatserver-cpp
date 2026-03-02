@@ -3,9 +3,5 @@
 
 int main(){
     Server server;
-
     server.run();
-    while (true) {
-    
-    }
 }
